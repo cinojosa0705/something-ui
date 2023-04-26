@@ -1,24 +1,28 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import type { NextApiRequest, NextApiResponse } from "next";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
 
-const API_KEY = 'yoyo-nono-yolo-nolo-ahhh-7777';
+const API_KEY = "yoyo-nono-yolo-nolo-ahhh-7777";
 
-export default async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method !== 'POST') {
-    res.status(405).json({ message: 'Method not allowed' });
+interface dataBlock {
+    apiKey: string, userId: string, userName: string, serverId: string, serverName: string, amount: string, side: string
+}
+
+async function saveData(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    res?.status(405).json({ message: "Method not allowed" });
     return;
   }
 
-  const { apiKey, userId, userName, serverId, serverName, amount, side } = req.body;
+const data: dataBlock = req.body as dataBlock;
 
-  if (apiKey !== API_KEY) {
-    res.status(403).json({ message: 'Invalid API key' });
+  if (data.apiKey !== API_KEY) {
+    res.status(403).json({ message: "Invalid API key" });
     return;
   }
 
   const db = await open({
-    filename: 'stats.db',
+    filename: "stats.db",
     driver: sqlite3.Database,
   });
 
@@ -30,14 +34,19 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       server_id TEXT,
       server_name TEXT,
       amount REAL,
-      side TEXT,
+      side TEXT
     )
   `);
 
-  const result = await db.run(`
+  const result = await db.run(
+    `
     INSERT INTO stats (user_id, user_name, server_id, server_name, amount, side)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `, [userId, userName, serverId, serverName, amount, side]);
+    VALUES (?, ?, ?, ?, ?, ?)
+  `,
+    [data.userId, data.userName, data.serverId, data.serverName, data.amount, data.side]
+  );
 
-  res.status(200).json({ message: 'Data saved successfully', result });
-};
+  res.status(200).json({ message: "Data saved successfully", result });
+}
+
+export default saveData;
