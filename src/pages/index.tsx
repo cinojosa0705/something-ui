@@ -1,8 +1,28 @@
 import styles from "./index.module.css";
 import type { NextPage } from "next";
 import Head from "next/head";
+import { useState, useEffect } from "react";
+
+interface Stat {
+  serverName: string;
+  userName: string;
+  amount: number;
+  side: string;
+}
 
 const Home: NextPage = () => {
+  const [data, setData] = useState<Stat[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const response = await fetch("/api/getStats");
+      const json = (await response.json()) as Stat[];
+      setData(json);
+    };
+  
+    void fetchData();
+  }, []);  
+
   return (
     <>
       <Head>
@@ -12,9 +32,27 @@ const Home: NextPage = () => {
       </Head>
       <main className={styles.main}>
         <div className={styles.container}>
-          <h1 className={styles.title}>
-            YoloNolo Stats
-          </h1>
+          <h1 className={styles.title}>YoloNolo Stats</h1>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Server Name</th>
+                <th>User Name</th>
+                <th>Amount</th>
+                <th>Side</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.serverName}</td>
+                  <td>{item.userName}</td>
+                  <td>{item.amount}</td>
+                  <td>{item.side}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </main>
     </>

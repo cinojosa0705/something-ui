@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-image: linear-gradient(to bottom, #2e026d, #15162c);
+  background-image: linear-gradient(to bottom, #6d0202, #1b0f0f);
 }
 
 .container {
@@ -146,4 +146,53 @@
 
 .loginButton:hover {
   background-color: rgb(255 255 255 / 0.2);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: white;
+  margin-top: 2rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.table th {
+  font-weight: 600;
+}
+
+.table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 767px) {
+  .table {
+    display: block;
+  }
+
+  .table thead,
+  .table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .table thead tr,
+  .table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .table th,
+  .table td {
+    display: block;
+    flex: 1 1 50%;
+    text-align: left;
+  }
 }
