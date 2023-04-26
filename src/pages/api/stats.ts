@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
+import path from 'path';
 
 const API_KEY = "yoyo-nono-yolo-nolo-ahhh-7777";
 
@@ -33,7 +34,7 @@ async function saveData(req: NextApiRequest, res: NextApiResponse) {
     }
 
     const db = await open({
-      filename: "stats.db",
+      filename: path.join("/tmp", "stats.db"),
       driver: sqlite3.Database,
     });
 
