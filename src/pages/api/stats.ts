@@ -4,6 +4,10 @@ import { open } from "sqlite";
 
 const API_KEY = "yoyo-nono-yolo-nolo-ahhh-7777";
 
+interface ErrorWithMessage extends Error {
+  message: string;
+}
+
 interface dataBlock {
   apiKey: string;
   userId: string;
@@ -62,10 +66,11 @@ async function saveData(req: NextApiRequest, res: NextApiResponse) {
 
     res.status(200).json({ message: "Data saved successfully", result });
   } catch (error) {
-    console.error("Error in saveData API: ", error);
+    const typedError: ErrorWithMessage = error as ErrorWithMessage;
+    console.error("Error in saveData API: ", typedError);
     res
       .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
+      .json({ message: "Internal Server Error", error: typedError.message });
   }
 }
 
