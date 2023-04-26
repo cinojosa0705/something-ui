@@ -1,7 +1,7 @@
 import styles from "./index.module.css";
 import type { NextPage } from "next";
 import Head from "next/head";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 interface Stat {
   serverName: string;
@@ -18,19 +18,33 @@ interface AggregatedStat {
   totalVolume: number;
 }
 
+type SortDirection = "asc" | "desc" | "none";
+
+interface SortState {
+  field: keyof AggregatedStat;
+  direction: SortDirection;
+}
+
 const Home: NextPage = () => {
   const [aggregatedData, setAggregatedData] = useState<AggregatedStat[]>([]);
-  
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [sortState, setSortState] = useState<SortState>({
+    field: "totalVolume",
+    direction: "desc",
+  });
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
     const fetchData = async () => {
       const response = await fetch("/api/getStats");
       const json = (await response.json()) as Stat[];
-  
+
       const aggregated: { [key: string]: AggregatedStat } = {};
-  
+
       json.forEach((item) => {
         const key = `${item.serverName}_${item.userName}`;
-  
+
         if (!aggregated[key]) {
           aggregated[key] = {
             serverName: item.serverName,
@@ -40,30 +54,70 @@ const Home: NextPage = () => {
             totalVolume: 0,
           };
         }
-  
-        if (item.side === 'yolo') {
+
+        if (item.side === "yolo") {
           (aggregated[key] as AggregatedStat).yoloVolume += item.amount;
-        } else if (item.side === 'nolo') {
+        } else if (item.side === "nolo") {
           (aggregated[key] as AggregatedStat).noloVolume += item.amount;
         }
-        
+
         (aggregated[key] as AggregatedStat).totalVolume += item.amount;
       });
-  
+
       setAggregatedData(Object.values(aggregated));
     };
-  
+
     void fetchData();
-  
+
     const intervalId = setInterval(() => {
       localStorage.clear();
       void fetchData();
     }, 1000);
-  
+
     return () => clearInterval(intervalId);
   }, []);
-  
-  
+
+  const filteredData = useMemo(() => {
+    return aggregatedData.filter(
+      (item) =>
+        item.serverName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.userName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [aggregatedData, searchTerm]);
+
+  const sortedData = useMemo(() => {
+    const sorted = [...filteredData];
+
+    if (sortState.direction !== "none") {
+      sorted.sort((a, b) => {
+        const compA = a[sortState.field];
+        const compB = b[sortState.field];
+
+        if (compA < compB) return sortState.direction === "asc" ? -1 : 1;
+        if (compA > compB) return sortState.direction === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return sorted;
+  }, [filteredData, sortState]);
+
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedData.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedData, currentPage, itemsPerPage]);
+
+  const handleSort = (field: keyof AggregatedStat) => {
+    setSortState((prevState) => {
+      const direction =
+        prevState.field === field && prevState.direction === "asc"
+          ? "desc"
+          : "asc";
+      return { field, direction };
+    });
+  };
 
   return (
     <>
@@ -75,18 +129,45 @@ const Home: NextPage = () => {
       <main className={styles.main}>
         <div className={styles.container}>
           <h1 className={styles.title}>YoloNolo Stats</h1>
+          <input
+            type="text"
+            placeholder="Search by server or user name"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={styles.searchInput}
+          />
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Server Name</th>
-                <th>User Name</th>
-                <th>Yolo Volume</th>
-                <th>Nolo Volume</th>
-                <th>Total Volume</th>
+                <th onClick={() => handleSort("serverName")}>
+                  Server Name
+                  {sortState.field === "serverName" &&
+                    (sortState.direction === "asc" ? " ▲" : " ▼")}
+                </th>
+                <th onClick={() => handleSort("userName")}>
+                  User Name
+                  {sortState.field === "userName" &&
+                    (sortState.direction === "asc" ? " ▲" : " ▼")}
+                </th>
+                <th onClick={() => handleSort("yoloVolume")}>
+                  Yolo Volume
+                  {sortState.field === "yoloVolume" &&
+                    (sortState.direction === "asc" ? " ▲" : " ▼")}
+                </th>
+                <th onClick={() => handleSort("noloVolume")}>
+                  Nolo Volume
+                  {sortState.field === "noloVolume" &&
+                    (sortState.direction === "asc" ? " ▲" : " ▼")}
+                </th>
+                <th onClick={() => handleSort("totalVolume")}>
+                  Total Volume
+                  {sortState.field === "totalVolume" &&
+                    (sortState.direction === "asc" ? " ▲" : " ▼")}
+                </th>
               </tr>
             </thead>
             <tbody>
-              {aggregatedData.map((item, index) => (
+              {paginatedData.map((item, index) => (
                 <tr key={index}>
                   <td>{item.serverName}</td>
                   <td>{item.userName}</td>
@@ -97,6 +178,27 @@ const Home: NextPage = () => {
               ))}
             </tbody>
           </table>
+          <div className={styles.pagination}>
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={styles.paginationButton}
+            >
+              Previous
+            </button>
+            <span className={styles.paginationInfo}>
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className={styles.paginationButton}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </main>
     </>
