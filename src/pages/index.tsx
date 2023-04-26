@@ -10,18 +10,60 @@ interface Stat {
   side: string;
 }
 
-const Home: NextPage = () => {
-  const [data, setData] = useState<Stat[]>([]);
+interface AggregatedStat {
+  serverName: string;
+  userName: string;
+  yoloVolume: number;
+  noloVolume: number;
+  totalVolume: number;
+}
 
+const Home: NextPage = () => {
+  const [aggregatedData, setAggregatedData] = useState<AggregatedStat[]>([]);
+  
   useEffect(() => {
     const fetchData = async () => {
       const response = await fetch("/api/getStats");
       const json = (await response.json()) as Stat[];
-      setData(json);
+  
+      const aggregated: { [key: string]: AggregatedStat } = {};
+  
+      json.forEach((item) => {
+        const key = `${item.serverName}_${item.userName}`;
+  
+        if (!aggregated[key]) {
+          aggregated[key] = {
+            serverName: item.serverName,
+            userName: item.userName,
+            yoloVolume: 0,
+            noloVolume: 0,
+            totalVolume: 0,
+          };
+        }
+  
+        if (item.side === 'yolo') {
+          (aggregated[key] as AggregatedStat).yoloVolume += item.amount;
+        } else if (item.side === 'nolo') {
+          (aggregated[key] as AggregatedStat).noloVolume += item.amount;
+        }
+        
+        (aggregated[key] as AggregatedStat).totalVolume += item.amount;
+      });
+  
+      setAggregatedData(Object.values(aggregated));
     };
   
     void fetchData();
-  }, []);  
+  
+    const intervalId = setInterval(() => {
+      localStorage.clear();
+      void fetchData();
+    }, 1000);
+  
+    return () => clearInterval(intervalId);
+  }, []);
+  
+  
 
   return (
     <>
@@ -38,17 +80,19 @@ const Home: NextPage = () => {
               <tr>
                 <th>Server Name</th>
                 <th>User Name</th>
-                <th>Amount</th>
-                <th>Side</th>
+                <th>Yolo Volume</th>
+                <th>Nolo Volume</th>
+                <th>Total Volume</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((item, index) => (
+              {aggregatedData.map((item, index) => (
                 <tr key={index}>
                   <td>{item.serverName}</td>
                   <td>{item.userName}</td>
-                  <td>{item.amount}</td>
-                  <td>{item.side}</td>
+                  <td>{item.yoloVolume}</td>
+                  <td>{item.noloVolume}</td>
+                  <td className={styles.totalVolume}>{item.totalVolume}</td>
                 </tr>
               ))}
             </tbody>

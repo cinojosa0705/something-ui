@@ -172,6 +172,11 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+.totalVolume {
+  font-weight: bold;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
 @media (max-width: 767px) {
   .table {
     display: block;
