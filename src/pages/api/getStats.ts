@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
+import path from 'path';
 
 interface Stat {
   serverName: string;
@@ -16,7 +17,7 @@ async function getStats(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const db = await open({
-    filename: "stats.db",
+    filename: path.join("/tmp", "stats.db"),
     driver: sqlite3.Database,
   });
 
